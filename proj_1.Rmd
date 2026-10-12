@@ -1,0 +1,64 @@
+---
+title: "demography_proj_1"
+author: "A.M.Mahin"
+date: "2026-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(tidyverse)
+```
+
+
+# Initial guesses of trend
+
+* Fertility drop started with urbanization; maybe around 2000-2010
+
+* Probably has higher fertility than Pakistan, definitely higher than Nepal; probably lower than India
+
+* Life expectancy probably rose first before fertility fell
+
+# Comparison countries
+a.  India   \
+b.  Pakistan    \
+c.  Nepal  
+
+# Main study
+
+## **The intial guesses were correct and also analysis of demography of Bangladesh**
+
+* *how did Bangladesh’s fertility and life expectancy change from 1950 on, and how does it compare with its neighbors?*
+
+
+Load data
+```{r}
+df_f <- read.csv("~/VSC/project/proj1/children-per-woman-un.csv")
+df_e <- read.csv("~/VSC/project/proj1/life-expectancy-hmd-unwpp.csv")
+```
+
+inspect
+```{r}
+str(df_f)
+str(df_e)
+
+df_e |> 
+  anyNA()
+df_f |>
+  anyNA()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
