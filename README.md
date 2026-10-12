@@ -3,4 +3,4 @@ A demography project I am doing on my 2nd year which covers mainly AST205,230,23
 
 ## sources:
 * Fertility: https://ourworldindata.org/grapher/children-per-woman-un
-* Life expectancy: https://ourworldindata.org/grapher/life-expectancy-hmd-unwpp?country=FRA~ZAF~NGA~CHN
+* Life expectancy: https://ourworldindata.org/grapher/life-expectancy-hmd-unwpp
