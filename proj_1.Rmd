@@ -35,8 +35,8 @@ c.  Nepal
 
 Load data
 ```{r}
-df_f <- read.csv("~/VSC/project/proj1/children-per-woman-un.csv")
-df_e <- read.csv("~/VSC/project/proj1/life-expectancy-hmd-unwpp.csv")
+df_f <- read.csv("children-per-woman-un.csv")
+df_e <- read.csv("life-expectancy-hmd-unwpp.csv")
 ```
 
 inspect
@@ -49,16 +49,66 @@ df_e |>
 df_f |>
   anyNA()
 ```
+checking...
+```{r}
+unique(df_e[,1:2])
+"---------------------------------------------------------------------------------------------------"
+unique(df_f[,1:2])
+```
+
+
+required codes
+```{r}
+t_df_e <- df_e |> 
+  filter(Code == "BGD" | Code == "NPL" | Code == "IND" | Code == "PAK")
+t_df_f <- df_f |> 
+  filter(Code == "BGD" | Code == "NPL" | Code == "IND" | Code == "PAK")
+```
+
+merge
+```{r}
+df <- merge(t_df_f,t_df_e)
+str(df)
+```
+Rename columns 
+```{r}
+df <- df |>
+  rename(country = Entity,
+         code = Code,
+         year = Year,
+         fert_rate = Fertility.rate,
+         life_exp = Life.expectancy.at.birth..totals..period
+         )
+```
+create country specific dataframes
+```{r}
+df_bd <- df |> 
+  filter(code == "BGD")
+df_ind <- df |> 
+  filter(code == "IND")
+df_pak <- df |> 
+  filter(code == "PAK")
+df_npl <- df |> 
+  filter(code == "NPL")
+```
+
+plots
+```{r}
+df |> 
+ggplot(aes(x = year, y = fert_rate, color = country)) + geom_line() + expand_limits(y =0) +
+  labs(title = "Fertility rate VS. Time")
+```
+
+
+```{r}
+df |> 
+ggplot(aes(x = year, y = life_exp, color = country)) + geom_line() + expand_limits(y =0) +
+  labs(title = "Life Expectancy VS. Time")
+```
 
 
 
 
-
-
-
-
-
-
-
-
-
+```{r}
+str(df)
+```
