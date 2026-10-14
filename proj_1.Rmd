@@ -67,7 +67,7 @@ t_df_f <- df_f |>
 
 merge
 ```{r}
-df <- merge(t_df_f,t_df_e)
+df <- merge(t_df_f,t_df_e, by = c("Entity", "Code", "Year"))
 str(df)
 ```
 Rename columns 
@@ -96,17 +96,25 @@ plots
 ```{r}
 df |> 
 ggplot(aes(x = year, y = fert_rate, color = country)) + geom_line() + expand_limits(y =0) +
-  labs(title = "Fertility rate VS. Time")
+  labs(title = "Fertility rate(Births) VS. Time")
 ```
 
 
 ```{r}
 df |> 
 ggplot(aes(x = year, y = life_exp, color = country)) + geom_line() + expand_limits(y =0) +
-  labs(title = "Life Expectancy VS. Time")
+  labs(title = "Life Expectancy(years) VS. Time")
 ```
 
+Interpretations:
+1. Fertility drop started with urbanization; maybe around 2000-2010:
+wrong initial drop started after peaking at 1970. falling after the liberation 
 
+2. Probably has higher fertility than Pakistan, definitely higher than Nepal; probably lower than India:
+Pakistan has higher fertility, Nepal was lower till 1985 and Bd dropped below.India was lower till 1993 then Bd dropped lower
+
+3.Life expectancy probably rose first before fertility fell:
+life expectancy has been gradually rising bar a huge spike down around 1971
 
 
 ```{r}
