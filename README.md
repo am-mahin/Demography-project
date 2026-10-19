@@ -6,12 +6,6 @@ This is a small exploratory data analysis in R. It looks at the **total fertilit
 
 ## Key findings
 
-<!-- Fill in AFTER you finish Phase 5/6, from your own computed numbers. 3 bullets max. Example shape:
-- Fertility in Bangladesh peaked in <year> at <value> and fell to <value> by 2023.
-- Compared with its neighbours: <one sentence>.
-- Life expectancy and fertility: <one careful sentence, descriptive not causal>.
--->
-
 _To be completed._
 
 ## Repository contents
@@ -44,17 +38,12 @@ Download pages (check these open the chart you expect, with no extra country sel
 - Fertility: https://ourworldindata.org/grapher/children-per-woman-un
 - Life expectancy: https://ourworldindata.org/grapher/life-expectancy-hmd-unwpp
 
-Date downloaded: <!-- fill in -->
+Date downloaded: 11-10-2026
 
 Notes on the data:
-- Values for recent years are UN **estimates** and are model-based, not direct counts. <!-- confirm which years are estimates vs projections in the 2024 edition -->
+- Values for recent years are UN **estimates** and are model-based, not direct counts. 
 - Both files contain non-country rows (regions and aggregates, usually with a blank `Code`). The analysis keeps only `BGD`, `IND`, `PAK` and `NPL`.
 
-## Licence and attribution
-
-- **Data:** <!-- Check each provider's current terms before choosing: OWID's own licence statement on each chart page, the UN WPP terms, and the HMD user agreement. State here what you found, and if redistribution is not clearly allowed, delete the CSVs from the repo and rely on the download links above. -->
-  Data are credited to: UN Population Division, *World Population Prospects 2024*; Human Mortality Database (University of California, Berkeley, and Max Planck Institute for Demographic Research); processed by Our World in Data.
-- **Code:** released under the MIT Licence (add a `LICENSE` file, or replace this line with your choice).
 
 ## Limitations
 
@@ -65,7 +54,7 @@ Notes on the data:
 ## References
 
 - Lee, R. (2003). The demographic transition: three centuries of fundamental change. *Journal of Economic Perspectives*, 17(4), 167 to 190.
-- <!-- Add the Bangladesh contraceptive use and fertility paper and any others you actually read, in a consistent format. -->
+
 
 ## Author
 
