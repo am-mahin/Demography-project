@@ -1,19 +1,33 @@
 ---
-title: "demography_proj_1"
-author: "A.M.Mahin"
-date: "2026-10-11"
-output: html_document
+title: "Fertility and life expectancy in Bangladesh since 1950"
+author: "A. M. Mahin"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: journal
+    toc: true
+    toc_float: true
+    collapse: true
+    toc_depth: 2
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
-```{r}
+
+```{r packages}
 library(tidyverse)
 ```
 
+# Question
 
-# Initial guesses of trend
+How did Bangladesh's fertility and life expectancy change from 1950 on, and how does it compare with India, Pakistan and Nepal?
+
+* **Total fertility rate (TFR):** the average number of children a woman would have in her lifetime if she experienced, at each age, the birth rates of that one year.
+* **Life expectancy at birth (period):** the average number of years a newborn would live if death rates of that one year stayed the same throughout their life.
+
+# Initial guesses of trend (before data):
 
 * Fertility drop started with urbanization; maybe around 2000-2010
 
@@ -21,88 +35,285 @@ library(tidyverse)
 
 * Life expectancy probably rose first before fertility fell
 
-# Comparison countries
-a.  India   \
-b.  Pakistan    \
-c.  Nepal  
 
-# Main study
+# Data card
 
-## **The intial guesses were correct and also analysis of demography of Bangladesh**
+| Item | Fertility file | Life expectancy file |
+|---|---|---|
+| File | `children-per-woman-un.csv` | `life-expectancy-hmd-unwpp.csv` |
+| Measure | Total fertility rate | Period life expectancy at birth |
+| Source | UN World Population Prospects, 2024 revision | HMD before 1950, UN WPP 2024 from 1950 onward |
+| Provider of the CSV | Our World in Data (OWID) | Our World in Data (OWID) |
+| Years in file | 1950 to 2023 | Goes back to 1751 for some countries, ends 2023 |
+| Estimates or projections? | WPP 2024 treats 1950 to 2023 as estimates and 2024 onward as projections; the file ends in 2023, so all rows are estimates | Same for 1950 to 2023 |
 
-* *how did Bangladesh’s fertility and life expectancy change from 1950 on, and how does it compare with its neighbors?*
+Why does life expectancy start in the 1700s? The Human Mortality Database (HMD) supplies pre-1950 values for the few countries it covers (for example some European countries with very old records). The four countries here only have values from 1950, which come from UN WPP.
 
+Non-country rows: both files include regions and aggregates (for example continents and income groups). Many of them have a blank `Code`. This analysis keeps only the four country codes.
 
-Load data
-```{r}
-df_f <- read.csv("children-per-woman-un.csv")
-df_e <- read.csv("~/VSC/project/proj1/life-expectancy-hmd-unwpp.csv")
+Even the "estimates" are modelled: the UN builds them from censuses, surveys and vital registration, and fills gaps with demographic models.
+
+# Settings
+
+Thresholds used for the milestone measures are set here so that you can change them and see how much the results depend on them.
+
+```{r settings}
+countries <- c("BGD", "IND", "PAK", "NPL")
+fert_drop_share <- 0.25   # milestone: fertility has fallen 25% below its own peak
+life_gain_years <- 10     # milestone: life expectancy is 10 years above its 1950 value
 ```
 
-inspect
-```{r}
+Why these thresholds: a 25% fall from the peak is large enough to rule out year-to-year noise and small enough that every country reaches it. Ten years of life expectancy gained is about the size of a decade of sustained improvement in this period. Both are judgement calls, so treat the milestone years as comparisons between countries, not exact dates.
+
+# Load data
+
+Paths are relative to the project folder, so the report runs on any computer that has the `Data/` folder.
+
+```{r load}
+df_f <- read.csv("/Data/children-per-woman-un.csv")
+df_e <- read.csv("/Data/life-expectancy-hmd-unwpp.csv")
+```
+
+# Inspect
+
+```{r inspect}
 str(df_f)
 str(df_e)
-
-df_e |> 
-  anyNA()
-df_f |>
-  anyNA()
 ```
-required codes
-```{r}
+
+```{r blank-codes}
+tibble(
+  file = c("fertility", "life expectancy"),
+  rows = c(nrow(df_f), nrow(df_e)),
+  entities = c(n_distinct(df_f$Entity), n_distinct(df_e$Entity)),
+  blank_code_rows = c(sum(df_f$Code == ""), sum(df_e$Code == ""))
+)
+```
+
+# Clean and merge
+
+```{r filter}
+t_df_f <- df_f |>
+  filter(Code %in% countries)
 t_df_e <- df_e |> 
-  filter(Code == "BGD" | Code == "NPL" | Code == "IND" | Code == "PAK")
-t_df_f <- df_f |> 
-  filter(Code == "BGD" | Code == "NPL" | Code == "IND" | Code == "PAK")
+  filter(Code %in% countries)
 ```
 
-merge
-```{r}
-df <- merge(t_df_f,t_df_e)
-str(df)
+Merging
+
+```{r merge}
+df <- merge(t_df_f,t_df_e, by = c("Entity", "Code", "Year"))
+tibble(
+  rows_fertility = nrow(t_df_f),
+  rows_life_exp = nrow(t_df_e),
+  rows_after_merge = nrow(df)
+)
 ```
-```{r}
+
+```{r rename}
 df <- df |>
   rename(country = Entity,
          code = Code,
          year = Year,
          fert_rate = Fertility.rate,
-         life_exp = Life.expectancy.at.birth..totals..period
-         )
+         life_exp = Life.expectancy.at.birth..totals..period) |>
+  arrange(country, year)
+
+df |> group_by(country) |>
+  summarise(first_year = min(year), last_year = max(year), n_years = n())
 ```
 
+# Plots
 
-plots
-```{r}
+**Fertility.** Expectation: falling over time for all four countries.
+
+```{r plot-fertility}
 df |> 
-ggplot(aes(x = year, y = fert_rate, color = country)) + geom_line() + expand_limits(y =0) +
-  labs(title = "Fertility rate VS. Time")
+ggplot( aes(x = year, y = fert_rate, linetype = country, color = country)) +
+  geom_line(linewidth = .85) +  
+  scale_linetype_manual(values = c("solid", "dashed", "dotted","dotdash")) + 
+  theme_minimal() + 
+  labs(title = "Fertility rate over time, 1950-2023", x = "Year", y = "Children per woman (total fertility rate)",
+       colour = "Country", linetype = "Country") +
+  theme_minimal(base_size = 12)
+
 ```
 
+**Life expectancy.** Expectation: rising over time for all four countries.
 
-```{r}
+```{r plot-life}
 df |> 
-ggplot(aes(x = year, y = life_exp, color = country)) + geom_line() + expand_limits(y =0) +
-  labs(title = "Life Expectancy VS. Time")
+ggplot( aes(x = year, y = fert_rate, linetype = country, color = country)) +
+  geom_line(linewidth = .85) +  
+  scale_linetype_manual(values = c("solid", "dashed", "dotted","dotdash")) + 
+  theme_minimal() + 
+  labs(title = "Life expectancy at birth over time, 1950-2023", x = "Year", y = "Life expectancy at birth (years)",
+       colour = "Country", linetype = "Country") +
+  theme_minimal(base_size = 12)
+
 ```
 
-Interpretations:
-1. Fertility drop started with urbanization; maybe around 2000-2010:
-wrong initial drop started after peaking at 1970. falling after the liberation 
 
-2. Probably has higher fertility than Pakistan, definitely higher than Nepal; probably lower than India:
-Pakistan has higher fertility, Nepal was lower till 1985 and Bd dropped below.India was lower till 1993 then Bd dropped lower
+# **Observations:**
 
-3.Life expectancy probably rose first before fertility fell:
-life expectancy has been gradually rising bar a huge spike down around 1971
+* Fertility: all four countries fall, but the timing differs. Bangladesh's fall starts after a peak around 1970.
+* Life expectancy: rising in all four countries, with a sharp one-year drop for Bangladesh in the early 1970s.
 
+## The early-1970s dip
 
+Is the dip only in Bangladesh? Find each country's largest one-year fall in life expectancy:
 
-
-
-
-
-```{r}
-str(df)
+```{r dip-check}
+df |>
+  group_by(country) |>
+  mutate(change = life_exp - lag(life_exp)) |>
+  slice_min(change, n = 1, with_ties = FALSE) |>
+  ungroup() |>
+  select(country, year, change)
 ```
+
+The data show *when* the dip happens, not *why*. Linking it to a specific event needs outside evidence, not just this chart.
+
+# Quantify
+
+Four measures per country, computed from the merged data.
+
+**1. Fertility peak and the year it fell 25% below the peak. 2. Year life expectancy first gained 10 years over its 1950 value.**
+
+```{r milestones}
+measures <- df |>
+  group_by(country) |>
+  summarise(
+    peak_fert_year = year[which.max(fert_rate)],
+    peak_fert = max(fert_rate),
+    fert_drop_year = min(year[year > year[which.max(fert_rate)] &
+                              fert_rate <= (1 - fert_drop_share) * max(fert_rate)]),
+    life_1950 = life_exp[year == 1950],
+    life_gain_year = min(year[life_exp >= life_exp[year == 1950] + life_gain_years]),
+    fert_2023 = fert_rate[year == max(year)],
+    life_2023 = life_exp[year == max(year)],
+    .groups = "drop"
+  )
+
+knitr::kable(measures, digits = 2,
+             caption = "Milestone measures (years are calendar years; thresholds set in Settings)")
+```
+
+**3. Average change per decade, by period.**
+
+```{r per-decade}
+periods <- tibble(start = c(1950, 1970, 1990, 2010),
+                  end   = c(1970, 1990, 2010, 2023))
+
+per_decade <- pmap(periods, function(start, end) {
+  df |>
+    filter(year %in% c(start, end)) |>
+    arrange(country, year) |>
+    group_by(country) |>
+    summarise(period = paste0(start, "-", end),
+              fert_per_decade = (last(fert_rate) - first(fert_rate)) / (end - start) * 10,
+              life_per_decade = (last(life_exp) - first(life_exp)) / (end - start) * 10,
+              .groups = "drop")
+}) |> list_rbind()
+
+per_decade |>
+  select(country, period, fert_per_decade) |>
+  pivot_wider(names_from = period, values_from = fert_per_decade) |>
+  knitr::kable(digits = 2, caption = "Change in fertility per decade (children per woman)")
+
+per_decade |>
+  select(country, period, life_per_decade) |>
+  pivot_wider(names_from = period, values_from = life_per_decade) |>
+  knitr::kable(digits = 2, caption = "Change in life expectancy per decade (years)")
+```
+
+**4. When did Bangladesh's fertility drop below each neighbour's, for good?**
+
+```{r crossover}
+wide <- df |>
+  select(country, year, fert_rate) |>
+  pivot_wider(names_from = country, values_from = fert_rate)
+
+below_for_good <- function(neighbour) {
+  not_lower <- wide$year[wide$Bangladesh >= wide[[neighbour]]]
+  if (length(not_lower) == 0) return(min(wide$year))   # always lower
+  if (max(not_lower) == max(wide$year)) return(NA_real_) # never stays lower
+  max(not_lower) + 1
+}
+
+crossover <- tibble(neighbour = c("India", "Pakistan", "Nepal")) |>
+  mutate(bangladesh_lower_from = map_dbl(neighbour, below_for_good))
+
+knitr::kable(crossover,
+             caption = "First year after which Bangladesh stays below the neighbour (NA = never)")
+```
+
+# Predictions vs results
+
+```{r predictions}
+bgd <- measures |> filter(country == "Bangladesh")
+m <- function(name, col) measures[[col]][measures$country == name]
+
+p1_ok <- dplyr::between(bgd$peak_fert_year, 2000, 2010)
+
+p2_ok <- bgd$fert_2023 > m("Pakistan", "fert_2023") &
+         bgd$fert_2023 > m("Nepal", "fert_2023") &
+         bgd$fert_2023 < m("India", "fert_2023")
+
+p3_ok <- bgd$life_gain_year < bgd$fert_drop_year
+
+yr <- function(x) ifelse(is.na(x), "never", as.character(x))
+cx <- setNames(crossover$bangladesh_lower_from, crossover$neighbour)
+
+tibble(
+  prediction = c("1. Fertility drop started around 2000-2010",
+                 "2. Higher than Pakistan and Nepal, lower than India",
+                 "3. Life expectancy rose before fertility fell"),
+  measured = c(
+    paste0("Fertility peaked in ", bgd$peak_fert_year, " at ", round(bgd$peak_fert, 2),
+           " children per woman"),
+    paste0("2023 TFR: Bangladesh ", round(bgd$fert_2023, 2),
+           ", India ", round(m("India", "fert_2023"), 2),
+           ", Pakistan ", round(m("Pakistan", "fert_2023"), 2),
+           ", Nepal ", round(m("Nepal", "fert_2023"), 2),
+           ". Bangladesh stays below India from ", yr(cx["India"]),
+           ", Pakistan from ", yr(cx["Pakistan"]),
+           ", Nepal from ", yr(cx["Nepal"])),
+    paste0("Life expectancy +", life_gain_years, " years by ", bgd$life_gain_year,
+           "; fertility ", fert_drop_share * 100, "% below peak by ", bgd$fert_drop_year)
+  ),
+  verdict = c(ifelse(p1_ok, "consistent", "not consistent"),
+              ifelse(p2_ok, "consistent (2023 ordering)", "not consistent (2023 ordering)"),
+              ifelse(p3_ok, "consistent on this timing measure", "not consistent on this timing measure"))
+) |> knitr::kable()
+```
+
+Notes on reading this table:
+
+* Prediction 1 was about *when the drop started*, measured here by the peak year. The urbanization part of the prediction cannot be tested with these two datasets, because neither contains urbanization data.
+* Prediction 2 depends on the period. The 2023 ordering and the crossover years in the previous section describe different things, so both are shown.
+* Prediction 3 compares two milestone years. It says which change reached its threshold first. It does not show that one change caused the other.
+
+# Summary
+
+Bangladesh's fertility peaked in `r bgd$peak_fert_year` at `r round(bgd$peak_fert, 2)` children per woman and was `r round(bgd$fert_2023, 2)` in 2023. Life expectancy at birth was `r round(bgd$life_1950, 1)` years in 1950 and `r round(bgd$life_2023, 1)` years in 2023.
+
+# Limitations
+
+* **Modeled estimates.** UN figures are built from censuses, surveys and registration data, with models filling the gaps. Uncertainty is larger for earlier years and for countries with weaker records, and the sharp short-term movements may partly reflect modelling choices.
+* **Description, not causation.** Two series moving over the same period does not show that one drove the other. The prediction about urbanization is not tested here.
+* **Threshold choices.** The milestone years depend on the 25% and 10-year thresholds. Change them in Settings to see how sensitive the comparison is.
+* **Four countries.** The results describe these four countries only, not South Asia as a whole.
+* **Period measures.** Period fertility and life expectancy describe a single year's rates, not the experience of a real group of people followed over time.
+
+# Link to the literature
+
+The demographic transition (Lee, 2003) describes the long shift from high mortality and high fertility to low mortality and low fertility. In the classic pattern, mortality falls first and fertility follows later, which is the idea behind prediction 3. The milestone comparison above is a simple version of that timing question for four countries since 1950.
+
+
+# References
+
+* Lee, R. (2003). The demographic transition: three centuries of fundamental change. *Journal of Economic Perspectives*, 17(4), 167-190.
+* United Nations, Department of Economic and Social Affairs, Population Division (2024). *World Population Prospects 2024*. https://population.un.org/wpp/
+* Human Mortality Database. University of California, Berkeley, and Max Planck Institute for Demographic Research. https://www.mortality.org
+* Our World in Data: "Fertility rate" (`children-per-woman-un`) and "Life expectancy at birth" (`life-expectancy-hmd-unwpp`), https://ourworldindata.org/grapher/
